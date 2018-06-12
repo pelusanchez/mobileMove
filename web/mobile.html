@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+            <head>
+            <title>Mobile controller</title>
+            <script type="text/javascript" src="/socket.js"></script>
+            <script type="text/javascript" src="/configuration.js"></script>
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <script languaje="JavaScript">
+
+            
+            const socket = io.connect(location.origin.replace(configuration.webport,configuration.nodeport));
+            var passElm = [];
+
+            const fsTags = (function(){
+                var _tag = {};
+                if(document.exitFullscreen){
+                    _tag["request"] = "requestFullscreen";
+                    _tag["exit"] = "exitFullscreen";
+                    _tag["element"] = "fullscreenElement";
+                }else if(document.webkitExitFullscreen){
+                    _tag["request"] = "webkitRequestFullscreen";
+                    _tag["exit"] = "webkitExitFullscreen";
+                    _tag["element"] = "webkitFullscreenElement";
+                }else if(document.webkitCancelFullScreen){
+                    _tag["request"] = "webkitRequestFullScreen";
+                    _tag["exit"] = "webkitCancelFullscreen";
+                    _tag["element"] = "webkitCurrentFullScreenElement";
+                }else if(document.mozCancelFullScreen){
+                    _tag["request"] = "mozRequestFullscreen";
+                    _tag["exit"] = "mozCancelFullScreen";
+                    _tag["element"] = "mozFullScreenElement";
+                }else if(document.msExitFullscreen){
+                    _tag["request"] = "msRequestFullscreen";
+                    _tag["exit"] = "msExitFullscreen";
+                    _tag["element"] = "msFullscreenElement";
+                }
+                return _tag;
+            
+
+            })();
+
+            var cursorElm, tableenterElm, startElm;
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+
+            const start = function(){
+                document.body[fsTags.request]();
+                cursorElm.style.display = "block";
+                startElm.style.display = "none";
+            };
+            window.onload = function(){
+                startElm = document.getElementById("start");
+                cursorElm = document.getElementById("cursor");
+                tableenterElm = document.getElementById("tableenter");
+                
+                window.addEventListener("orientationchange", function() {
+                    if(screen.orientation.angle === 0){
+                        width = window.innerWidth;
+                        height = window.innerHeight;
+                    }else{
+                        width = window.innerHeight;
+                        height = window.innerWidth;
+
+                    }
+                    
+                });
+
+                
+
+                socket.on("data", function(_data){
+                    let objData = JSON.parse(_data);
+                    if(objData.info === "loggin"){
+                        if(objData.logged){
+                            startElm.style.display = "block";
+                            tableenterElm.style.display = "none";
+                            
+                            
+                        }else{
+                            let i = 4;
+                            while(i--){
+                                passElm[i].style.borderColor="#E11";
+                                passElm[i].value = "";
+                            }
+                            passElm[0].select();
+                        }
+                    }
+                });
+                
+                document.addEventListener("touchmove", function(){
+                    let finger = event.targetTouches[0];
+                    cursorElm.style.left = finger.pageX+"px";
+                    cursorElm.style.top = finger.pageY+"px";
+                    socket.emit("position", JSON.stringify({
+                        x : finger.pageX/width,
+                        y : finger.pageY/height
+                    }));
+                });
+                document.addEventListener("touchstart", function(){
+                    
+                    let finger = event.targetTouches[0];
+                    cursorElm.style.left = finger.pageX+"px";
+                    cursorElm.style.top = finger.pageY+"px";
+                    socket.emit("click", JSON.stringify({
+                        x : finger.pageX/width,
+                        y : finger.pageY/height
+                    }));
+                });
+                
+                let i = 4;
+                while(i--){
+                   passElm[i]= document.getElementById("pass"+(i+1));
+                   passElm[i].addEventListener("input", numberParse);
+                }
+                passElm[0].select();
+                
+                
+            };
+
+            const enviarCodigo = function(){
+                let codigo = parseInt(passElm[0].value+passElm[1].value+passElm[2].value+passElm[3].value);
+                socket.emit("checksecret", "{\"secret\":"+codigo+"}");
+
+            };
+            const numberParse = function(){
+                let me = parseInt(event.target.id.slice(4,5));
+
+                if(event.target.value.length == 1){
+                    event.target.style.borderColor = "#1E1";
+                }else{
+                    event.target.style.borderColor = "#E11";
+                }
+                if(me === 4 && event.target.value.length === 1){
+                    enviarCodigo();
+                    return;
+                }
+                if(me < 4){
+                    document.getElementById("pass"+(me+1)).select();  // Next element in array is same as me number
+                }
+            };
+            </script>
+            <style type="text/css">
+            body {
+                font-family: Arial;
+                padding:0;
+                margin:0;
+                width:100%;
+                height:100%;
+                background:#000;
+                overflow:hidden;
+
+            }
+
+            #cursor {
+                position:absolute;
+                width:50px;
+                height:50px;
+                top:10px;
+                left:10px;
+                border-radius: 25px;
+                background:#CCC;
+                display:none;
+            }
+
+            .checkid_text {
+                height:50px;
+                width:50px;
+                font-size:40px;
+                border:2px solid #000;
+                text-align:center;
+            }
+
+            #tableenter {
+                padding-top: 50px;
+                margin: 0 auto;
+            }
+
+            #start {
+                margin-top: 50px;
+                margin:0 auto;
+                display:none;
+            }
+            </style>
+            </head>
+            <body>
+                <div id="cursor"></div>
+                <table border="0" id="tableenter">
+                    <tr>
+                        <td><input type="number" min="0" step="1" id="pass1" class="checkid_text">
+                        <td><input type="number" min="0" step="1" id="pass2" class="checkid_text">
+                        <td><input type="number" min="0" step="1" id="pass3" class="checkid_text">
+                        <td><input type="number" min="0" step="1" id="pass4" class="checkid_text">
+                    </tr>
+                </table>
+                <input type="button" onClick="start()" value="Comenzar" id="start">
+            </body>
+            </html>

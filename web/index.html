@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+            <head>
+            <title>Mobile controller</title>
+            <script type="text/javascript" src="/socket.js"></script>
+            <script languaje="JavaScript">
+            var socket = io.connect('http://localhost:8080');
+            var orientation = 0;
+
+            /**
+            variable:  fsTags
+                Use to store the fullScreen valid tags because differents web browsers
+                have differents function names.
+            */
+
+
+            window.onload = function(){
+                
+                let infoElm = document.getElementById("info");
+                socket.emit("getsecret", "");
+                socket.on("code", function(_data){
+                    try {
+                        let data = JSON.parse(_data);
+                        document.getElementById('addressElm').innerText = data.address; 
+                        document.getElementById('codeElm').innerText = data.code;
+
+                    }catch(e){
+                        infoElm.innerText="Error grave. Reinicie el sistema.";
+                    }
+                    
+                       
+                });
+                
+                socket.on("err", function(data){
+                    console.log(data);
+                    try {
+                        let err = JSON.parse(data);
+                        infoElm.innerText="Error: "+err.text;
+                    }catch(e){
+                        infoElm.innerText="Error grave. Reinicie el sistema.";
+                    }
+                });
+                
+            }
+            </script>
+            </head>
+            <body style="font-family: Arial; text-align: center;">
+            <div style="padding-top:100px; font-size:50px;" id="info">
+                    Entre en la página  <span id="addressElm">-</span> desde su móvil.
+                </div>
+                <div style="padding-top:100px; font-size:50px;" id="info">
+                    Introduzca la clave <span id="codeElm">-</span>
+                </div>
+            </body>
+            </html>
